@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Shield } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/components/auth-provider";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { signIn } = useAuth();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -16,23 +18,16 @@ export default function LoginPage() {
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: formData.get("email"),
-        password: formData.get("password"),
-      }),
-    });
+    const err = await signIn(
+      formData.get("email") as string,
+      formData.get("password") as string
+    );
 
-    const data = await res.json();
     setLoading(false);
-
-    if (data.error) {
-      setError(data.error);
+    if (err) {
+      setError(err);
     } else {
       router.push("/dashboard");
-      router.refresh();
     }
   };
 
@@ -51,49 +46,22 @@ export default function LoginPage() {
               {error}
             </div>
           )}
-
           <div>
-            <label htmlFor="email" className="mb-1 block text-sm text-zinc-400">
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
-              placeholder="you@example.com"
-            />
+            <label htmlFor="email" className="mb-1 block text-sm text-zinc-400">Email</label>
+            <input id="email" name="email" type="email" required className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600" placeholder="you@example.com" />
           </div>
-
           <div>
-            <label htmlFor="password" className="mb-1 block text-sm text-zinc-400">
-              Password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
-              placeholder="••••••••"
-            />
+            <label htmlFor="password" className="mb-1 block text-sm text-zinc-400">Password</label>
+            <input id="password" name="password" type="password" required className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600" placeholder="••••••••" />
           </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-zinc-200 disabled:opacity-50"
-          >
+          <button type="submit" disabled={loading} className="w-full rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-zinc-200 disabled:opacity-50">
             {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-zinc-500">
           Don&apos;t have an account?{" "}
-          <Link href="/auth/register" className="text-emerald-400 hover:text-emerald-300">
-            Sign up
-          </Link>
+          <Link href="/auth/register" className="text-emerald-400 hover:text-emerald-300">Sign up</Link>
         </p>
       </div>
     </div>

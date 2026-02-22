@@ -1,20 +1,25 @@
-import { Suspense } from "react";
-import { SearchBar } from "@/components/search-bar";
+"use client";
+
+import { useState } from "react";
+import { Search } from "lucide-react";
 import { AgentCard } from "@/components/agent-card";
-import { searchAgents, agentCategories } from "@/lib/data/agents";
+import { agents, agentCategories } from "@/lib/data/agents";
 
-interface Props {
-  searchParams: Promise<{ q?: string; category?: string }>;
-}
+export default function AgentsPage() {
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("all");
 
-export const metadata = {
-  title: "Agent Catalog — Armorer",
-  description: "Browse and install secure AI agents. Every agent is sandboxed, monitored, and hardened by Armorer.",
-};
-
-export default async function AgentsPage({ searchParams }: Props) {
-  const params = await searchParams;
-  const results = searchAgents(params.q || "", params.category);
+  const results = agents.filter((a) => {
+    const matchesCategory = category === "all" || a.category === category;
+    if (!query) return matchesCategory;
+    const q = query.toLowerCase();
+    return (
+      matchesCategory &&
+      (a.name.toLowerCase().includes(q) ||
+        a.tagline.toLowerCase().includes(q) ||
+        a.tags.some((t) => t.includes(q)))
+    );
+  });
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
@@ -25,13 +30,27 @@ export default async function AgentsPage({ searchParams }: Props) {
         </p>
       </div>
 
-      <Suspense>
-        <SearchBar
-          placeholder="Search agents..."
-          basePath="/agents"
-          categories={agentCategories}
-        />
-      </Suspense>
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search agents..."
+            className="w-full rounded-lg border border-zinc-800 bg-zinc-900 py-2.5 pl-10 pr-4 text-sm text-white placeholder-zinc-500 outline-none transition-colors focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+          />
+        </div>
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          className="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-sm text-zinc-300 outline-none transition-colors focus:border-emerald-600"
+        >
+          {agentCategories.map((cat) => (
+            <option key={cat.value} value={cat.value}>{cat.label}</option>
+          ))}
+        </select>
+      </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {results.map((agent) => (

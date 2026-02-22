@@ -4,19 +4,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Shield, Menu, X } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "./auth-provider";
 
-interface NavbarProps {
-  user: { name: string; email: string } | null;
-}
-
-export function Navbar({ user }: NavbarProps) {
+export function Navbar() {
   const pathname = usePathname();
+  const { user, loading, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const links = [
     { href: "/agents", label: "Agents" },
     { href: "/skills", label: "Skills" },
   ];
+
+  const displayName = user?.user_metadata?.name || user?.email?.split("@")[0] || "U";
 
   return (
     <nav className="sticky top-0 z-50 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md">
@@ -44,7 +44,9 @@ export function Navbar({ user }: NavbarProps) {
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
-          {user ? (
+          {loading ? (
+            <div className="h-8 w-20 animate-pulse rounded-md bg-zinc-800" />
+          ) : user ? (
             <div className="flex items-center gap-3">
               <Link
                 href="/dashboard"
@@ -52,16 +54,14 @@ export function Navbar({ user }: NavbarProps) {
               >
                 Dashboard
               </Link>
-              <form action="/api/auth/logout" method="POST">
-                <button
-                  type="submit"
-                  className="rounded-md px-3 py-2 text-sm text-zinc-400 transition-colors hover:bg-zinc-800/50 hover:text-white"
-                >
-                  Sign Out
-                </button>
-              </form>
+              <button
+                onClick={() => signOut()}
+                className="rounded-md px-3 py-2 text-sm text-zinc-400 transition-colors hover:bg-zinc-800/50 hover:text-white"
+              >
+                Sign Out
+              </button>
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-sm font-medium">
-                {user.name[0].toUpperCase()}
+                {displayName[0].toUpperCase()}
               </div>
             </div>
           ) : (
@@ -113,14 +113,15 @@ export function Navbar({ user }: NavbarProps) {
                 >
                   Dashboard
                 </Link>
-                <form action="/api/auth/logout" method="POST">
-                  <button
-                    type="submit"
-                    className="block w-full rounded-md px-3 py-2 text-left text-sm text-zinc-400 hover:text-white"
-                  >
-                    Sign Out
-                  </button>
-                </form>
+                <button
+                  onClick={() => {
+                    signOut();
+                    setMobileOpen(false);
+                  }}
+                  className="block w-full rounded-md px-3 py-2 text-left text-sm text-zinc-400 hover:text-white"
+                >
+                  Sign Out
+                </button>
               </>
             ) : (
               <>

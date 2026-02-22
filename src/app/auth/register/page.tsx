@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Shield } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/components/auth-provider";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { signUp } = useAuth();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -24,31 +26,23 @@ export default function RegisterPage() {
       setLoading(false);
       return;
     }
-
     if (password.length < 8) {
       setError("Password must be at least 8 characters");
       setLoading(false);
       return;
     }
 
-    const res = await fetch("/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: formData.get("name"),
-        email: formData.get("email"),
-        password,
-      }),
-    });
+    const err = await signUp(
+      formData.get("name") as string,
+      formData.get("email") as string,
+      password
+    );
 
-    const data = await res.json();
     setLoading(false);
-
-    if (data.error) {
-      setError(data.error);
+    if (err) {
+      setError(err);
     } else {
       router.push("/dashboard");
-      router.refresh();
     }
   };
 
@@ -63,83 +57,32 @@ export default function RegisterPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="rounded-lg border border-red-800 bg-red-950 p-3 text-sm text-red-400">
-              {error}
-            </div>
+            <div className="rounded-lg border border-red-800 bg-red-950 p-3 text-sm text-red-400">{error}</div>
           )}
-
           <div>
-            <label htmlFor="name" className="mb-1 block text-sm text-zinc-400">
-              Name
-            </label>
-            <input
-              id="name"
-              name="name"
-              type="text"
-              required
-              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
-              placeholder="Your name"
-            />
+            <label htmlFor="name" className="mb-1 block text-sm text-zinc-400">Name</label>
+            <input id="name" name="name" type="text" required className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600" placeholder="Your name" />
           </div>
-
           <div>
-            <label htmlFor="email" className="mb-1 block text-sm text-zinc-400">
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
-              placeholder="you@example.com"
-            />
+            <label htmlFor="email" className="mb-1 block text-sm text-zinc-400">Email</label>
+            <input id="email" name="email" type="email" required className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600" placeholder="you@example.com" />
           </div>
-
           <div>
-            <label htmlFor="password" className="mb-1 block text-sm text-zinc-400">
-              Password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              minLength={8}
-              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
-              placeholder="••••••••"
-            />
+            <label htmlFor="password" className="mb-1 block text-sm text-zinc-400">Password</label>
+            <input id="password" name="password" type="password" required minLength={8} className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600" placeholder="••••••••" />
           </div>
-
           <div>
-            <label htmlFor="confirm" className="mb-1 block text-sm text-zinc-400">
-              Confirm Password
-            </label>
-            <input
-              id="confirm"
-              name="confirm"
-              type="password"
-              required
-              minLength={8}
-              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
-              placeholder="••••••••"
-            />
+            <label htmlFor="confirm" className="mb-1 block text-sm text-zinc-400">Confirm Password</label>
+            <input id="confirm" name="confirm" type="password" required minLength={8} className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600" placeholder="••••••••" />
           </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
-          >
+          <button type="submit" disabled={loading} className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-500 disabled:opacity-50">
             {loading ? "Creating account..." : "Create Account"}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-zinc-500">
           Already have an account?{" "}
-          <Link href="/auth/login" className="text-emerald-400 hover:text-emerald-300">
-            Sign in
-          </Link>
+          <Link href="/auth/login" className="text-emerald-400 hover:text-emerald-300">Sign in</Link>
         </p>
       </div>
     </div>
