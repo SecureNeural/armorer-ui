@@ -1,11 +1,12 @@
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
+import { createClient } from "@libsql/client";
+import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "./schema";
-import path from "path";
 
-const dbPath = process.env.DATABASE_PATH || path.join(process.cwd(), "armorer.db");
-const sqlite = new Database(dbPath);
-sqlite.pragma("journal_mode = WAL");
-sqlite.pragma("foreign_keys = ON");
+const url = process.env.DATABASE_URL || "file:armorer.db";
 
-export const db = drizzle(sqlite, { schema });
+const client = createClient({
+  url,
+  authToken: process.env.DATABASE_AUTH_TOKEN,
+});
+
+export const db = drizzle(client, { schema });

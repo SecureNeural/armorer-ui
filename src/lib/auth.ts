@@ -40,21 +40,20 @@ export async function register(
   email: string,
   password: string
 ): Promise<{ success: boolean; error?: string }> {
-  const existing = db.select().from(users).where(eq(users.email, email)).get();
+  const [existing] = await db.select().from(users).where(eq(users.email, email)).limit(1);
   if (existing) {
     return { success: false, error: "Email already registered" };
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
-  const result = db
+  const [result] = await db
     .insert(users)
     .values({ name, email, passwordHash })
-    .returning({ id: users.id })
-    .get();
+    .returning({ id: users.id });
 
   const sessionId = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + SESSION_DURATION).toISOString();
-  db.insert(sessions).values({ id: sessionId, userId: result.id, expiresAt }).run();
+  await db.insert(sessions).values({ id: sessionId, userId: result.id, expiresAt });
 
   const token = await createToken({ sessionId, userId: result.id });
   const cookieStore = await cookies();
@@ -73,7 +72,7 @@ export async function login(
   email: string,
   password: string
 ): Promise<{ success: boolean; error?: string }> {
-  const user = db.select().from(users).where(eq(users.email, email)).get();
+  const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
   if (!user) {
     return { success: false, error: "Invalid email or password" };
   }
@@ -85,7 +84,7 @@ export async function login(
 
   const sessionId = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + SESSION_DURATION).toISOString();
-  db.insert(sessions).values({ id: sessionId, userId: user.id, expiresAt }).run();
+  await db.insert(sessions).values({ id: sessionId, userId: user.id, expiresAt });
 
   const token = await createToken({ sessionId, userId: user.id });
   const cookieStore = await cookies();
@@ -106,42 +105,46 @@ export async function logout(): Promise<void> {
   if (token) {
     const payload = await verifyToken(token);
     if (payload?.sessionId) {
-      db.delete(sessions)
-        .where(eq(sessions.id, payload.sessionId as string))
-        .run();
+      await db
+        .delete(sessions)
+        .where(eq(sessions.id, payload.sessionId as string));
     }
   }
   cookieStore.delete("auth-token");
 }
 
 export async function getSession(): Promise<SessionUser | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("auth-token")?.value;
-  if (!token) return null;
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth-token")?.value;
+    if (!token) return null;
 
-  const payload = await verifyToken(token);
-  if (!payload?.sessionId) return null;
+    const payload = await verifyToken(token);
+    if (!payload?.sessionId) return null;
 
-  const session = db
-    .select()
-    .from(sessions)
-    .where(eq(sessions.id, payload.sessionId as string))
-    .get();
+    const [session] = await db
+      .select()
+      .from(sessions)
+      .where(eq(sessions.id, payload.sessionId as string))
+      .limit(1);
 
-  if (!session || new Date(session.expiresAt) < new Date()) {
-    if (session) {
-      db.delete(sessions).where(eq(sessions.id, session.id)).run();
+    if (!session || new Date(session.expiresAt) < new Date()) {
+      if (session) {
+        await db.delete(sessions).where(eq(sessions.id, session.id));
+      }
+      return null;
     }
+
+    const [user] = await db.select().from(users).where(eq(users.id, session.userId)).limit(1);
+    if (!user) return null;
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      image: user.image,
+    };
+  } catch {
     return null;
   }
-
-  const user = db.select().from(users).where(eq(users.id, session.userId)).get();
-  if (!user) return null;
-
-  return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    image: user.image,
-  };
 }

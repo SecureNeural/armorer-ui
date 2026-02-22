@@ -17,7 +17,7 @@ Browse, install, and run AI agents securely. One command to sandbox, monitor, an
 - **Framework**: Next.js 15 (App Router, TypeScript)
 - **Styling**: Tailwind CSS
 - **Auth**: Custom JWT (jose + bcryptjs)
-- **Database**: SQLite (better-sqlite3) + Drizzle ORM
+- **Database**: SQLite via libSQL (local) / Turso (production) + Drizzle ORM
 - **Icons**: Lucide React
 
 ## Getting Started
@@ -46,18 +46,32 @@ cp .env.example .env
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `AUTH_SECRET` | JWT signing secret | dev default |
-| `DATABASE_PATH` | SQLite database path | `./armorer.db` |
+| `DATABASE_URL` | SQLite file or Turso URL | `file:armorer.db` |
+| `DATABASE_AUTH_TOKEN` | Turso auth token (prod only) | — |
 
 ## Deployment
 
-### Vercel (Recommended)
+### Vercel + Turso (Recommended — Free)
 
-```bash
-npm i -g vercel
-vercel
-```
+1. Create a free [Turso](https://turso.tech) database:
+   ```bash
+   turso db create armorer-ui
+   turso db tokens create armorer-ui
+   ```
+2. Run the migration against Turso:
+   ```bash
+   DATABASE_URL=libsql://your-db.turso.io DATABASE_AUTH_TOKEN=your-token npm run db:migrate
+   ```
+3. Deploy to Vercel:
+   ```bash
+   vercel
+   ```
+4. Set environment variables in the Vercel dashboard:
+   - `AUTH_SECRET` — generate with `openssl rand -base64 32`
+   - `DATABASE_URL` — your Turso database URL
+   - `DATABASE_AUTH_TOKEN` — your Turso token
 
-The SQLite database works for local dev. For production, swap to [Turso](https://turso.tech) (free tier) by updating the Drizzle config.
+Both Vercel and Turso have generous free tiers (no credit card required).
 
 ### Cloudflare Pages
 

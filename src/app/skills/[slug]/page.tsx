@@ -37,7 +37,7 @@ export default async function SkillDetailPage({ params }: Props) {
   const user = await getSession();
   let isFavorited = false;
   if (user) {
-    const fav = db
+    const [fav] = await db
       .select()
       .from(favorites)
       .where(
@@ -47,7 +47,7 @@ export default async function SkillDetailPage({ params }: Props) {
           eq(favorites.itemSlug, slug)
         )
       )
-      .get();
+      .limit(1);
     isFavorited = !!fav;
   }
 

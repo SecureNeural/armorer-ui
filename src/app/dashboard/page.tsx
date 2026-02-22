@@ -16,11 +16,10 @@ export default async function DashboardPage() {
   const user = await getSession();
   if (!user) redirect("/auth/login");
 
-  const userFavorites = db
+  const userFavorites = await db
     .select()
     .from(favorites)
-    .where(eq(favorites.userId, user.id))
-    .all();
+    .where(eq(favorites.userId, user.id));
 
   const savedAgents = userFavorites
     .filter((f) => f.itemType === "agent")

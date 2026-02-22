@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
-  const existing = db
+  const [existing] = await db
     .select()
     .from(favorites)
     .where(
@@ -25,13 +25,13 @@ export async function POST(req: Request) {
         eq(favorites.itemSlug, itemSlug)
       )
     )
-    .get();
+    .limit(1);
 
   if (existing) {
     return NextResponse.json({ success: true, favorited: true });
   }
 
-  db.insert(favorites).values({ userId: user.id, itemType, itemSlug }).run();
+  await db.insert(favorites).values({ userId: user.id, itemType, itemSlug });
   return NextResponse.json({ success: true, favorited: true });
 }
 
@@ -46,15 +46,15 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
-  db.delete(favorites)
+  await db
+    .delete(favorites)
     .where(
       and(
         eq(favorites.userId, user.id),
         eq(favorites.itemType, itemType),
         eq(favorites.itemSlug, itemSlug)
       )
-    )
-    .run();
+    );
 
   return NextResponse.json({ success: true, favorited: false });
 }
