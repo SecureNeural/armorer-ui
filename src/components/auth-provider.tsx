@@ -1,11 +1,17 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { createClient } from "@/lib/supabase/client";
-import type { User } from "@supabase/supabase-js";
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  user_metadata?: {
+    name?: string | null;
+  };
+}
 
 interface AuthState {
-  user: User | null;
+  user: AuthUser | null;
   loading: boolean;
   signUp: (name: string, email: string, password: string) => Promise<string | null>;
   signIn: (email: string, password: string) => Promise<string | null>;
@@ -21,45 +27,46 @@ const AuthContext = createContext<AuthState>({
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const supabase = createClient();
-
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-      setLoading(false);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
+    fetch("/api/auth/session", { cache: "no-store" })
+      .then(async (res) => {
+        if (!res.ok) return { user: null };
+        return (await res.json()) as { user: AuthUser | null };
+      })
+      .then((data) => setUser(data.user ?? null))
+      .finally(() => setLoading(false));
   }, []);
 
   const signUp = async (name: string, email: string, password: string) => {
-    const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { name } },
+    const res = await fetch("/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password }),
     });
-    return error?.message ?? null;
+    const data = (await res.json().catch(() => ({}))) as { error?: string; user?: AuthUser | null };
+    if (!res.ok) return data.error ?? "Failed to sign up";
+    setUser(data.user ?? null);
+    return null;
   };
 
   const signIn = async (email: string, password: string) => {
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return error?.message ?? null;
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = (await res.json().catch(() => ({}))) as { error?: string; user?: AuthUser | null };
+    if (!res.ok) return data.error ?? "Failed to sign in";
+    setUser(data.user ?? null);
+    return null;
   };
 
   const signOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    await fetch("/api/auth/logout", { method: "POST" });
+    setUser(null);
   };
 
   return (

@@ -3,7 +3,11 @@
 import { Heart } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "./auth-provider";
-import { createClient } from "@/lib/supabase/client";
+import {
+  addFavorite,
+  fetchFavoriteState,
+  removeFavorite,
+} from "@/lib/favorites/client";
 
 interface FavoriteButtonProps {
   itemType: "agent" | "skill";
@@ -20,39 +24,25 @@ export function FavoriteButton({ itemType, itemSlug }: FavoriteButtonProps) {
       setLoading(false);
       return;
     }
-    const supabase = createClient();
-    supabase
-      .from("favorites")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("item_type", itemType)
-      .eq("item_slug", itemSlug)
-      .maybeSingle()
-      .then(({ data }) => {
-        setFavorited(!!data);
-        setLoading(false);
-      });
+    setLoading(true);
+    fetchFavoriteState(itemType, itemSlug)
+      .then((nextState) => setFavorited(nextState))
+      .catch(() => setFavorited(false))
+      .finally(() => setLoading(false));
   }, [user, itemType, itemSlug]);
 
   if (!user) return null;
   if (loading) return <div className="h-9 w-16 animate-pulse rounded-lg bg-zinc-800" />;
 
   const toggle = async () => {
-    const supabase = createClient();
+    if (!user) return;
     if (favorited) {
-      await supabase
-        .from("favorites")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("item_type", itemType)
-        .eq("item_slug", itemSlug);
+      await removeFavorite(itemType, itemSlug);
       setFavorited(false);
-    } else {
-      await supabase
-        .from("favorites")
-        .insert({ user_id: user.id, item_type: itemType, item_slug: itemSlug });
-      setFavorited(true);
+      return;
     }
+    await addFavorite(itemType, itemSlug);
+    setFavorited(true);
   };
 
   return (

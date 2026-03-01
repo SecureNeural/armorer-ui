@@ -21,6 +21,16 @@ export default function AgentsPage() {
     );
   });
 
+  const showFeaturedAlternatives = !query && category === "all";
+  const featuredAlternatives = showFeaturedAlternatives
+    ? agents.filter((a) => a.tags.includes("openclaw-alternative") && a.slug !== "openclaw")
+    : [];
+  const featuredSlugs = new Set(featuredAlternatives.map((a) => a.slug));
+  const gridResults =
+    showFeaturedAlternatives && featuredAlternatives.length > 0
+      ? results.filter((a) => !featuredSlugs.has(a.slug))
+      : results;
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
       <div className="mb-8">
@@ -52,13 +62,31 @@ export default function AgentsPage() {
         </select>
       </div>
 
+      {featuredAlternatives.length > 0 && (
+        <section className="mt-8">
+          <div className="mb-4 flex items-end justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">Popular OpenClaw Alternatives</h2>
+              <p className="mt-1 text-sm text-zinc-400">
+                Product-style self-hosted alternatives with Docker support (not workflow frameworks)
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {featuredAlternatives.map((agent) => (
+              <AgentCard key={agent.slug} agent={agent} />
+            ))}
+          </div>
+        </section>
+      )}
+
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {results.map((agent) => (
+        {gridResults.map((agent) => (
           <AgentCard key={agent.slug} agent={agent} />
         ))}
       </div>
 
-      {results.length === 0 && (
+      {gridResults.length === 0 && (
         <div className="mt-12 text-center text-zinc-500">
           <p className="text-lg">No agents found</p>
           <p className="mt-1 text-sm">Try a different search term or category</p>

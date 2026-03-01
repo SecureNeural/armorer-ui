@@ -4,13 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Heart, Shield, Wrench, ArrowRight } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
-import { createClient } from "@/lib/supabase/client";
 import { getAgent } from "@/lib/data/agents";
 import { getSkill } from "@/lib/data/skills";
 import { useEffect, useState } from "react";
-
-import type { Database } from "@/lib/supabase/types";
-type Favorite = Database["public"]["Tables"]["favorites"]["Row"];
+import { fetchFavorites } from "@/lib/favorites/client";
+import type { Favorite } from "@/lib/favorites/types";
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
@@ -25,15 +23,10 @@ export default function DashboardPage() {
       return;
     }
 
-    const supabase = createClient();
-    supabase
-      .from("favorites")
-      .select("*")
-      .eq("user_id", user.id)
-      .then(({ data }) => {
-        setFavorites((data as Favorite[]) || []);
-        setLoading(false);
-      });
+    fetchFavorites()
+      .then((data) => setFavorites(data))
+      .catch(() => setFavorites([]))
+      .finally(() => setLoading(false));
   }, [user, authLoading, router]);
 
   if (authLoading || loading) {

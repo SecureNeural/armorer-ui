@@ -1,0 +1,10 @@
+name = "armorer-ui"
+compatibility_date = "2026-02-22"
+pages_build_output_dir = "out"
+
+# Cloudflare Pages Functions can read this D1 binding.
+# Replace database_id with your real D1 database ID.
+[[d1_databases]]
+binding = "DB"
+database_name = "armorer-ui"
+database_id = "ae97dbef-5cb4-4d8c-9ae8-efd0e48cf19c"
